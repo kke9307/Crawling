@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gstar.app.repository.BannerRepository">
+	<sql id="banner_Where_Clause" >
+	    <where >
+	    	<if test="searchGubun != null  and searchGubun !=''">
+			A.BT_POSITION=#{searchGubun}
+			</if>
+			<if test="searchKind != null  and searchKind !=''">
+				<![CDATA[ AND A.SITE_OPEN_GUBUN & #{searchKind} > 0 ]]>
+			</if>
+			<if test="searchVal != null  and searchVal !=''">
+					AND (A.BT_NAME like CONCAT('%',#{searchVal},'%') )
+			</if>
+			<if test="searchSDate != null  and searchSDate !=''">
+				AND ((A.BT_S_DATE <![CDATA[ <= ]]> #{searchEDate}) AND (A.BT_E_DATE <![CDATA[ >= ]]> #{searchSDate}))
+			</if>
+			<if test="searchKind5 == 'Y'.toString()">
+				AND NOW() BETWEEN A.BT_S_DATE AND A.BT_E_DATE
+			</if>
+			<if test="searchDel == 'N'.toString()">
+				AND A.DELETE_YN = #{searchDel}
+			</if>
+	    </where>
+    </sql>
+    
+	<select id="selectBannerList" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.BannerDetailVo">
+	<![CDATA[
+		SELECT A.*
+		, CASE WHEN SITE_OPEN_GUBUN = 2 THEN '국문'
+		       WHEN SITE_OPEN_GUBUN = 4 THEN '영문'
+		       WHEN SITE_OPEN_GUBUN = 6 THEN '국문/영문'
+		       ELSE ''
+		   END AS SITE_OPEN_GUBUN_STR
+		   
+		, case WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) > 0 THEN 16 -- 종료
+		       WHEN ((TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) <= 0) AND ((TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) >= 0)  THEN 4 -- 진행중
+		       WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) < 0 THEN 8 -- 시작전
+		      end
+		  AS BT_OPEN_STATE
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.IN_MEM_ID) AS IN_MEM_NAME
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.UP_MEM_ID) AS UP_MEM_NAME
+		FROM BANNER_TBL A 
+	]]>
+		<include refid="banner_Where_Clause"/>
+		ORDER BY A.BT_ORDER
+		limit #{firstIndex}, #{pageSize}
+	</select>
+	<!-- 노출순서 없는 배너 -->
+	<select id="selectBannerListNoOrder" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.BannerDetailVo">
+	<![CDATA[
+		SELECT A.*
+		, CASE WHEN SITE_OPEN_GUBUN = 2 THEN '국문'
+		       WHEN SITE_OPEN_GUBUN = 4 THEN '영문'
+		       WHEN SITE_OPEN_GUBUN = 6 THEN '국문/영문'
+		       ELSE ''
+		   END AS SITE_OPEN_GUBUN_STR
+		   
+		, case WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) > 0 THEN 16 -- 종료
+		       WHEN ((TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) <= 0) AND ((TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) >= 0)  THEN 4 -- 진행중
+		       WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) < 0 THEN 8 -- 시작전
+		      end
+		  AS BT_OPEN_STATE
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.IN_MEM_ID) AS IN_MEM_NAME
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.UP_MEM_ID) AS UP_MEM_NAME
+		FROM BANNER_TBL A 
+	]]>
+		<include refid="banner_Where_Clause"/>
+		ORDER BY A.INPUTDATE DESC
+		limit #{firstIndex}, #{pageSize}
+	</select>
+	
+	<select id="selectBannerListUser" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.BannerDetailVo">
+	<![CDATA[
+		SELECT A.*
+		, CASE WHEN SITE_OPEN_GUBUN = 2 THEN '국문'
+		       WHEN SITE_OPEN_GUBUN = 4 THEN '영문'
+		       WHEN SITE_OPEN_GUBUN = 6 THEN '국문/영문'
+		       ELSE ''
+		   END AS SITE_OPEN_GUBUN_STR
+		   
+		, case WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) > 0 THEN 16 -- 종료
+		       WHEN ((TO_DAYS(NOW()) - TO_DAYS(A.BT_E_DATE)) <= 0) AND ((TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) >= 0)  THEN 4 -- 진행중
+		       WHEN (TO_DAYS(NOW()) - TO_DAYS(A.BT_S_DATE)) < 0 THEN 8 -- 시작전
+		      end
+		  AS BT_OPEN_STATE
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.IN_MEM_ID) AS IN_MEM_NAME
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.UP_MEM_ID) AS UP_MEM_NAME
+		FROM BANNER_TBL A 
+	]]>
+		<include refid="banner_Where_Clause"/>
+		ORDER BY A.BT_ORDER
+		limit #{firstIndex}, #{pageSize}
+	</select>
+		
+	<select id="selectBannerListTotal" parameterType="com.gstar.app.model.SearchVo" resultType="int">
+		SELECT COUNT(*)
+		FROM BANNER_TBL A
+		<include refid="banner_Where_Clause"/>
+	</select>
+	<select id="selectBannerMaxOrder" resultType="int">
+		SELECT IFNULL(MAX(BT_ORDER), 0)
+		FROM BANNER_TBL
+	</select>
+	<select id="selectBanner" parameterType="int" resultType="com.gstar.app.model.BannerDetailVo">
+		SELECT A.*
+		FROM BANNER_TBL A
+		WHERE A.BT_IDX=#{bt_idx}
+	</select>
+	<select id="selectBannerDetail" parameterType="int" resultType="com.gstar.app.model.BannerDetailVo">
+		SELECT A.*
+		FROM V_BANNER A
+		WHERE A.BT_IDX=#{bt_idx} AND SITE_GUBUN=#{site_gubun}
+	</select>
+	<insert id="insertBanner" parameterType="com.gstar.app.model.BannerDetailVo" >
+		<selectKey resultType="int" keyProperty="bt_idx" order="BEFORE">
+			SELECT IFNULL(MAX(BT_IDX),0)+1 AS BT_IDX FROM BANNER_TBL
+		</selectKey>
+		
+		INSERT INTO BANNER_TBL (
+			BT_IDX
+			,BT_NAME
+			,BT_S_DATE
+			,BT_E_DATE
+			,BT_ORDER
+			,BT_USE_YN
+			,INPUTDATE
+			,UP_MEM_ID
+			,IN_MEM_ID
+			,SITE_OPEN_GUBUN
+			,BT_POSITION
+			,UPDATEDATE
+		) VALUES (
+			#{bt_idx}
+			,#{bt_name}
+			,#{bt_s_date}
+			,#{bt_e_date}
+			,(SELECT IFNULL(MAX(BT_ORDER), 0) + 1 FROM BANNER_TBL B)
+			,'Y'
+			,NOW()
+			,#{in_mem_id}
+			,#{in_mem_id}
+			,#{site_open_gubun}
+			,#{bt_position}
+			,NOW()
+		)
+	</insert>
+	
+	
+	<insert id="insertBannerDetail" parameterType="com.gstar.app.model.BannerDetailVo" >
+		INSERT INTO BANNER_DETAIL_TBL (
+			BT_IDX
+			,SITE_GUBUN
+			,P_ATCH_FILE_ID
+			,M_ATCH_FILE_ID
+			,BTD_URL
+			,BTD_TARGET
+		) VALUES (
+			#{bt_idx}
+			,#{site_gubun}
+			,#{p_atch_file_id}
+			,#{m_atch_file_id}
+			,#{btd_url}
+			,#{btd_target}
+		)
+	</insert>	
+	<update id="updateBanner" parameterType="com.gstar.app.model.BannerDetailVo" >
+		UPDATE BANNER_TBL SET  
+			BT_NAME=#{bt_name}
+			,BT_S_DATE=#{bt_s_date}
+			,BT_E_DATE=#{bt_e_date}
+			,BT_USE_YN=#{bt_use_yn}
+			,UP_MEM_ID=#{up_mem_id}
+			,BT_POSITION=#{bt_position}
+			,SITE_OPEN_GUBUN=#{site_open_gubun}
+			,UPDATEDATE=NOW()
+			WHERE BT_IDX=#{bt_idx}
+	</update>	
+	<update id="soartUpdate" parameterType="com.gstar.app.model.BannerDetailVo" >
+		UPDATE BANNER_TBL SET  
+			BT_ORDER=#{bt_order}
+			WHERE BT_IDX=#{bt_idx}
+	</update>
+	
+	<update id="updateBannerSort" parameterType="com.gstar.app.model.BannerDetailVo" >
+		UPDATE BANNER_TBL SET  
+			BT_ORDER=BT_ORDER + 1 
+			WHERE BT_ORDER &gt;= #{bt_order} AND BT_POSITION=#{bt_position}
+	</update>
+	
+	<update id="updateBannerSortDown" parameterType="com.gstar.app.model.BannerDetailVo" >
+		UPDATE BANNER_TBL SET  
+			BT_ORDER=BT_ORDER - 1 
+			WHERE BT_ORDER = #{bt_order} AND BT_POSITION=#{bt_position}
+	</update>
+	
+	<update id="updateBannerSortUp" parameterType="com.gstar.app.model.BannerDetailVo" >
+		UPDATE BANNER_TBL SET  
+			BT_ORDER=BT_ORDER + 1 
+			WHERE BT_ORDER = #{bt_order} AND BT_POSITION=#{bt_position}
+	</update>	
+	
+	<delete id="deleteBannerDetail" parameterType="com.gstar.app.model.BannerDetailVo" >
+		DELETE FROM BANNER_DETAIL_TBL 
+		WHERE BT_IDX=#{bt_idx} AND SITE_GUBUN=#{site_gubun}
+	</delete>	
+
+	<delete id="deleteBanner" parameterType="com.gstar.app.model.BannerDetailVo" >
+		DELETE FROM BANNER_TBL 
+		WHERE BT_IDX=#{bt_idx}
+	</delete>	
+	
+	<select id="selectSnsList" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.SnsNowDetailVo">
+	<![CDATA[
+		SELECT A.*
+		, CASE WHEN SITE_OPEN_GUBUN = 2 THEN '국문'
+		       WHEN SITE_OPEN_GUBUN = 4 THEN '영문'
+		       WHEN SITE_OPEN_GUBUN = 6 THEN '국문/영문'
+		       ELSE ''
+		   END AS SITE_OPEN_GUBUN_STR
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.IN_MEM_ID) AS IN_MEM_NAME
+		, (SELECT MEM_NAME FROM MEMBER_TBL M WHERE M.MEM_ID = A.UP_MEM_ID) AS UP_MEM_NAME
+		, IFNULL ((SELECT SNS_URL FROM SNS_DETAIL_TBL D WHERE D.SNS_IDX = A.SNS_IDX AND D.SITE_GUBUN=2),
+		(SELECT SNS_URL FROM SNS_DETAIL_TBL D WHERE D.SNS_IDX = A.SNS_IDX AND D.SITE_GUBUN=4)) AS SNS_URL
+		FROM SNS_TBL A 
+	]]>
+	    <where >
+			<if test="searchKind != null  and searchKind !=''">
+				<![CDATA[  A.SITE_OPEN_GUBUN & #{searchKind} > 0 ]]>
+			</if>
+			<if test="searchVal != null  and searchVal !=''">
+				AND (A.SNS_NAME like CONCAT('%',#{searchVal},'%') )
+			</if>
+			<if test="searchSDate != null  and searchSDate !=''">
+				AND ((A.INPUTDATE <![CDATA[ <= ]]> #{searchEDate}) AND (A.INPUTDATE <![CDATA[ >= ]]> #{searchSDate}))
+			</if>
+			<if test="searchDel == 'N'.toString()">
+				AND A.DELETE_YN = #{searchDel}
+			</if>
+	    </where>
+		ORDER BY A.INPUTDATE DESC
+		limit #{firstIndex}, #{pageSize}
+	</select>
+	
+	<select id="selectSnsListTotal" parameterType="com.gstar.app.model.SearchVo" resultType="int">
+		SELECT COUNT(*)
+		FROM SNS_TBL A
+	    <where >
+			<if test="searchKind != null  and searchKind !=''">
+				<![CDATA[ A.SITE_OPEN_GUBUN & #{searchKind} > 0 ]]>
+			</if>
+			<if test="searchVal != null  and searchVal !=''">
+					AND (A.SNS_NAME like CONCAT('%',#{searchVal},'%') )
+			</if>
+			<if test="searchSDate != null  and searchSDate !=''">
+				AND ((A.INPUTDATE <![CDATA[ <= ]]> #{searchEDate}) AND (A.INPUTDATE <![CDATA[ >= ]]> #{searchSDate}))
+			</if>
+			<if test="searchDel == 'N'.toString()">
+				AND A.DELETE_YN = #{searchDel}
+			</if>
+	    </where>
+	</select>
+	<select id="selectSns" parameterType="int" resultType="com.gstar.app.model.SnsNowDetailVo">
+		SELECT *
+		FROM SNS_TBL A
+		WHERE SNS_IDX = #{sns_idx}
+	</select>
+   	<select id="selectSnsDetail" parameterType="int" resultType="com.gstar.app.model.SnsNowDetailVo">
+		SELECT A.*
+		,D.SNS_URL
+		,D.IMG_URL
+		FROM SNS_TBL A LEFT JOIN SNS_DETAIL_TBL D ON A.SNS_IDX = D.SNS_IDX
+		WHERE A.SNS_IDX=#{sns_idx} AND D.SITE_GUBUN=#{site_gubun}
+	</select>
+   	<insert id="insertSnsNow" parameterType="com.gstar.app.model.SnsNowDetailVo" >
+	<selectKey resultType="int" keyProperty="sns_idx" order="BEFORE">
+		SELECT IFNULL(MAX(SNS_IDX),0)+1 AS SNS_IDX FROM SNS_TBL
+	</selectKey>
+		INSERT INTO SNS_TBL (
+			SNS_IDX
+			,SNS_NAME
+			,INPUTDATE
+			,UP_MEM_ID
+			,IN_MEM_ID
+			,SITE_OPEN_GUBUN
+			,UPDATEDATE
+			,DELETE_YN
+		) VALUES (
+			#{sns_idx}
+			,#{sns_name}
+			,NOW()
+			,#{in_mem_id}
+			,#{in_mem_id}
+			,#{site_open_gubun}
+			,NOW()
+			,'N'
+		)
+	</insert>
+	<insert id="insertSnsNowDetail" parameterType="com.gstar.app.model.SnsNowDetailVo" >
+		INSERT INTO SNS_DETAIL_TBL (
+			SNS_IDX
+			,SITE_GUBUN
+			,SNS_URL
+			,IMG_URL
+		) VALUES (
+			#{sns_idx}
+			,#{site_gubun}
+			,#{sns_url}
+			,#{img_url}
+		)
+	</insert>
+	
+	<update id="updateSnsNow" parameterType="com.gstar.app.model.SnsNowDetailVo" >
+		UPDATE SNS_TBL 
+		SET
+		    SNS_NAME = #{sns_name},
+			UP_MEM_ID=#{in_mem_id},
+			SITE_OPEN_GUBUN=#{site_open_gubun},
+			UPDATEDATE=NOW()
+		WHERE SNS_IDX=#{sns_idx}
+	</update>
+	
+   	<delete id="deleteSnsNowDetail" parameterType="com.gstar.app.model.SnsNowDetailVo" >
+		DELETE FROM SNS_DETAIL_TBL 
+		WHERE SNS_IDX=#{sns_idx} AND SITE_GUBUN=#{site_gubun}
+	</delete>	
+
+	<delete id="deleteSnsNow" parameterType="com.gstar.app.model.SnsNowDetailVo" >
+		UPDATE SNS_TBL SET DELETE_YN = 'Y'
+		WHERE SNS_IDX=#{sns_idx}
+	</delete>	
+
+	<select id="SelectEventComList" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.GstarMhEventVo">
+	<![CDATA[
+		SELECT 
+			A.GMET_IDX, 
+			A.GFT_IDX, 
+			A.GMET_NAME, 
+			A.GMET_S_DATE, 
+			A.GMET_ING_GUBUN,
+			A.GMET_E_DATE, 
+			A.GMET_CONT, 
+			A.GMET_PLACE, 
+			A.ATCH_FILE_ID, 
+			C.GHT_COM AS GCI_KOR_CNAME,
+			'' AS GCI_ENG_CNAME,
+			CASE
+				WHEN A.GMET_ING_GUBUN = 'I' THEN '노출'
+				ELSE '비노출'
+			END AS OPEN
+			FROM GSTAR_MH_EVENT_TBL A 
+			INNER JOIN GSTAR_FORM_TBL B ON A.GFT_IDX = B.GFT_IDX 
+			INNER JOIN GSTAR_MH_TBL C ON A.GFT_IDX = C.GFT_IDX  AND A.SITE_GUBUN = B.SITE_GUBUN
+			INNER JOIN GSTAR_MST_TBL D ON B.GMT_IDX = D.GMT_IDX
+			WHERE B.GFT_DEL_YN = 'N' AND D.GMT_DEL_YN = 'N' AND A.SITE_GUBUN=2
+		]]>
+			<if test="searchKind != null  and searchKind !=''">
+	 				AND A.GMET_ING_GUBUN = #{searchKind}
+			</if>
+		 	<if test="searchVal != null  and searchVal !=''">
+					AND (C.GHT_COM like CONCAT('%',#{searchVal},'%') )
+			</if>
+		ORDER BY A.GMET_S_DATE DESC
+		limit #{firstIndex}, #{pageSize}
+	</select>
+		
+	<select id="SelectEventComListTotal" parameterType="com.gstar.app.model.SearchVo" resultType="int">
+		<![CDATA[
+			SELECT
+				COUNT(*)
+			FROM GSTAR_MH_EVENT_TBL A 
+			LEFT JOIN GSTAR_FORM_TBL B ON A.GFT_IDX = B.GFT_IDX 
+			LEFT JOIN GSTAR_MH_TBL C ON A.GFT_IDX = C.GFT_IDX  AND A.SITE_GUBUN = B.SITE_GUBUN
+			LEFT JOIN GSTAR_MST_TBL D ON B.GMT_IDX = D.GMT_IDX
+			WHERE B.GFT_DEL_YN = 'N' AND D.GMT_DEL_YN = 'N' AND A.SITE_GUBUN=2
+		]]>
+		<if test="searchKind != null  and searchKind !=''">
+ 				AND A.GMET_ING_GUBUN = #{searchKind}
+		</if>
+
+	 	<if test="searchVal != null  and searchVal !=''">
+				AND (C.GHT_COM like CONCAT('%',#{searchVal},'%') )
+		</if>
+	</select>
+	<select id="selectAttBanner" parameterType="String" resultType="com.gstar.app.model.AttBannerVo">
+		SELECT A.*,C.GCI_ENG_CNAME,C.GCI_KOR_CNAME, B.GFT_IDX
+		FROM EVENT_BANNER_TBL A
+		LEFT JOIN gstar_mh_event_tbl B ON A.GMET_IDX = B.GMET_IDX
+		LEFT JOIN gstar_com_info_tbl C ON B.GFT_IDX = C.GFT_IDX
+		WHERE A.EBT_POSITION = #{ebt_position} limit 1
+	</select>
+	<select id="selectAttExBanner" parameterType="String" resultType="com.gstar.app.model.AttExBannerVo">
+		SELECT
+			* 
+		FROM 
+		EXHIBITOR_BANNER_TBL A 
+		LEFT JOIN GSTAR_COM_INFO_TBL B ON A.GFT_IDX = B.GFT_IDX
+		LEFT JOIN GSTAR_COM_TBL C ON C.GFT_IDX = A.GFT_IDX
+		WHERE A.EHT_POSITION = #{eht_position}
+	</select>
+	
+	
+	
+	<insert id="insertAttBanner" parameterType="com.gstar.app.model.AttBannerVo" >
+		<selectKey resultType="int" keyProperty="ebt_idx" order="BEFORE">
+			SELECT IFNULL(MAX(EBT_IDX),0)+1 AS BT_IDX FROM EVENT_BANNER_TBL
+		</selectKey>
+		INSERT INTO EVENT_BANNER_TBL (
+			EBT_IDX, 
+			GMET_IDX, 
+			EBT_TITLE, 
+			EBT_S_DATE, 
+			EBT_E_DATE, 
+			EBT_CONT, 
+			EBT_ENG_NAME, 
+			EBT_ENG_ENAME, 
+			EBT_ENG_S_DATE, 
+			EBT_ENG_E_DATE, 
+			EBT_ENG_CONT, 
+			UPDATEDATE, 
+			UP_MEM_ID, 
+			EBT_POSITION
+		)VALUES(
+			#{ebt_idx}, 
+			#{gmet_idx}, 
+			#{ebt_title}, 
+			#{ebt_s_date}, 
+			#{ebt_e_date}, 
+			#{ebt_cont}, 
+			#{ebt_eng_name}, 
+			#{ebt_eng_ename}, 
+			#{ebt_eng_s_date}, 
+			#{ebt_eng_e_date}, 
+			#{ebt_eng_cont}, 
+			now(), 
+			#{up_mem_id}, 
+			#{ebt_position}
+			)
+	</insert>	
+	
+	<insert id="insertExAttBanner" parameterType="com.gstar.app.model.AttExBannerVo" >
+		<selectKey resultType="int" keyProperty="eht_idx" order="BEFORE">
+			SELECT IFNULL(MAX(EHT_IDX),0)+1 AS BT_IDX FROM EXHIBITOR_BANNER_TBL
+		</selectKey>
+		INSERT INTO EXHIBITOR_BANNER_TBL (
+			EHT_IDX,
+			GFT_IDX,
+			EHT_POSITION,
+			P_ATCH_FILE_ID,
+			M_ATCH_FILE_ID,
+			UPDATEDATE,
+			MEM_ID
+		)VALUES(
+			#{eht_idx}, 
+			#{gft_idx}, 
+			#{eht_position}, 
+			#{p_atch_file_id}, 
+			#{m_atch_file_id}, 
+			now(), 
+			#{mem_id} 
+			)
+	</insert>	
+	
+	<update id="updateAttBanner" parameterType="com.gstar.app.model.AttBannerVo" >
+		UPDATE EVENT_BANNER_TBL SET 
+			GMET_IDX = #{gmet_idx}, 
+			EBT_TITLE = #{ebt_title}, 
+			EBT_S_DATE = #{ebt_s_date}, 
+			EBT_E_DATE = #{ebt_e_date}, 
+			EBT_CONT = #{ebt_cont}, 
+			EBT_ENG_NAME = #{ebt_eng_name}, 
+			EBT_ENG_ENAME = #{ebt_eng_ename}, 
+			EBT_ENG_S_DATE = #{ebt_eng_s_date}, 
+			EBT_ENG_E_DATE = #{ebt_eng_e_date}, 
+			EBT_ENG_CONT = #{ebt_eng_cont}, 
+			UPDATEDATE = NOW(), 
+			UP_MEM_ID = #{up_mem_id}
+		WHERE EBT_POSITION = #{ebt_position}
+	</update>	
+	
+	<update id="updateAttExBanner" parameterType="com.gstar.app.model.AttExBannerVo" >
+		UPDATE EXHIBITOR_BANNER_TBL SET 
+			GFT_IDX = #{gft_idx},
+			P_ATCH_FILE_ID = #{p_atch_file_id},
+			M_ATCH_FILE_ID = #{m_atch_file_id},
+			UPDATEDATE = NOW(),
+			MEM_ID = #{mem_id}
+		WHERE EHT_POSITION = #{eht_position}
+	</update>	
+	
+	
+	<select id="SelectExComList" parameterType="com.gstar.app.model.SearchVo" resultType="com.gstar.app.model.GstarMhEventVo">
+		<![CDATA[
+		SELECT
+			  B.GFT_IDX,
+			  D.GCT_NAME AS GCI_KOR_CNAME,
+			  A.GCI_ENG_CNAME
+		FROM 
+		GSTAR_COM_INFO_TBL A 
+		RIGHT JOIN GSTAR_FORM_TBL B ON A.GFT_IDX = B.GFT_IDX
+		LEFT JOIN GSTAR_COM_TBL D ON B.GFT_IDX = D.GFT_IDX
+		LEFT JOIN GSTAR_MST_TBL C ON B.GMT_IDX = C.GMT_IDX
+		WHERE C.GMT_DEL_YN = 'N' AND B.GFT_DEL_YN = 'N'
+		AND B.GFT_STATE=16
+		]]>
+		<if test="searchVal != null  and searchVal !=''">
+			AND (D.GCT_NAME like CONCAT('%',#{searchVal},'%') )
+		</if>
+		ORDER BY A.GFT_IDX DESC
+		limit #{firstIndex}, #{pageSize}
+	</select>
+		
+	<select id="SelectExComListTotal" parameterType="com.gstar.app.model.SearchVo" resultType="int">
+		<![CDATA[
+			SELECT
+				 COUNT(*)
+			FROM 
+			GSTAR_COM_INFO_TBL A 
+			RIGHT JOIN GSTAR_FORM_TBL B ON A.GFT_IDX = B.GFT_IDX
+			LEFT JOIN GSTAR_COM_TBL D ON B.GFT_IDX = D.GFT_IDX
+			LEFT JOIN GSTAR_MST_TBL C ON B.GMT_IDX = C.GMT_IDX
+			WHERE C.GMT_DEL_YN = 'N' AND B.GFT_DEL_YN = 'N'
+			AND B.GFT_STATE=16
+		]]>
+		<if test="searchVal != null  and searchVal !=''">
+			AND (D.GCT_NAME like CONCAT('%',#{searchVal},'%') )
+		</if>
+	</select>
+	
+	<delete id="deleteAttBanner" parameterType="com.gstar.app.model.AttBannerVo" >
+	<![CDATA[
+	DELETE FROM EVENT_BANNER_TBL 
+		WHERE EBT_POSITION = #{ebt_position}
+	]]>
+	</delete>
+	
+	<delete id="deleteExAttBanner" parameterType="com.gstar.app.model.AttExBannerVo" >
+	<![CDATA[
+	DELETE FROM EXHIBITOR_BANNER_TBL 
+		WHERE EHT_POSITION = #{eht_position}
+	]]>
+	</delete>
+	
+</mapper>
